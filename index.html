@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pharmacy Transfer Analysis - June 2025</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            color: #f1f5f9;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            color: #cbd5e1;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .header .date {
+            color: #94a3b8;
+            font-size: 1rem;
+        }
+        
+        .data-source {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid #3b82f6;
+            color: #93c5fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+        
+        .metric-card {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid #475569;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981);
+        }
+        
+        .metric-title {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 15px;
+        }
+        
+        .metric-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 10px;
+        }
+        
+        .metric-subtitle {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+        
+        .risk-indicator {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .risk-high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+        
+        .risk-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+        
+        .risk-low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-container {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            border: 1px solid #475569;
+        }
+        
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f1f5f9;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .chart-canvas {
+            position: relative;
+            height: 400px;
+        }
+        
+        .analysis-table {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            overflow: hidden;
+            border: 1px solid #475569;
+            margin-bottom: 30px;
+        }
+        
+        .table-header {
+            padding: 30px;
+            color: white;
+        }
+        
+        .table-header h2 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .table-header p {
+            text-align: center;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 18px 25px;
+            text-align: left;
+            border-bottom: 1px solid #475569;
+        }
+        
+        th {
+            background: #2d3748;
+            font-weight: 600;
+            color: #e2e8f0;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            color: #cbd5e1;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 50vh;
+            flex-direction: column;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #475569;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .insight-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .insight-card {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #475569;
+        }
+        
+        .insight-card h4 {
+            color: #3b82f6;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .insight-card p {
+            color: #cbd5e1;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .highlight-stat {
+            background: rgba(59, 130, 246, 0.1);
+            color: #93c5fd;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .critical-issue {
+            background: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 5px 5px 5px 0;
+        }
+        
+        .update-info {
+            background: linear-gradient(145deg, #1e293b 0%, #334155 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 30px;
+            border: 1px solid #475569;
+        }
+        
+        .update-info h3 {
+            color: #f1f5f9;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        
+        .update-info p {
+            color: #cbd5e1;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.2rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-canvas {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 Pharmacy Transfer Analysis</h1>
+            <p>Patient Pharmacy Network Retention Monitoring</p>
+            <p class="date">June 2025 • Transfer Request Dashboard</p>
+        </div>
+        
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <div style="color: #cbd5e1;">Loading pharmacy transfer data from Google Sheets...</div>
+        </div>
+        
+        <div id="dashboard" style="display: none;">
+            <div id="dataSource" class="data-source">
+                📊 Data loaded from Google Sheets • Last updated: <span id="lastUpdated"></span>
+            </div>
+            
+            <div class="analysis-table">
+                <div class="table-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                    <h2>📋 Transfer Request Summary</h2>
+                    <p>Key performance metrics at a glance</p>
+                </div>
+                <div style="padding: 20px;">
+                    <div id="quickSummaryContent">
+                        <!-- Quick summary will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-title">Total Transfer Requests</div>
+                    <div class="metric-value" id="totalRequests">0</div>
+                    <div class="metric-subtitle">All pharmacy transfer requests</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Retention Rate</div>
+                    <div class="metric-value" id="retentionRate">0%</div>
+                    <div class="metric-subtitle">Patients who stayed with network</div>
+                    <div class="risk-indicator" id="retentionRiskIndicator"></div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Transfer Rate</div>
+                    <div class="metric-value" id="transferRate">0%</div>
+                    <div class="metric-subtitle">Patients transferred out</div>
+                    <div class="risk-indicator" id="transferRiskIndicator"></div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Top Issue</div>
+                    <div class="metric-value" id="topIssue">-</div>
+                    <div class="metric-subtitle" id="topIssueCount">Most common transfer reason</div>
+                    <div class="risk-indicator risk-high">Priority</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Cost-Related Issues</div>
+                    <div class="metric-value" id="costIssues">0</div>
+                    <div class="metric-subtitle">Pricing concerns driving transfers</div>
+                    <div class="risk-indicator" id="costRiskIndicator"></div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-title">Service Issues</div>
+                    <div class="metric-value" id="serviceIssues">0</div>
+                    <div class="metric-subtitle">Delivery & accessibility problems</div>
+                    <div class="risk-indicator" id="serviceRiskIndicator"></div>
+                </div>
+            </div>
+            
+            <div class="chart-grid">
+                <div class="chart-container">
+                    <div class="chart-title">📊 Transfer Request Reasons</div>
+                    <div class="chart-canvas">
+                        <canvas id="reasonsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <div class="chart-title">🎯 Request Outcomes</div>
+                    <div class="chart-canvas">
+                        <canvas id="outcomesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="analysis-table">
+                <div class="table-header" style="background: linear-gradient(135deg, #475569 0%, #374151 100%);">
+                    <h2>Detailed Transfer Analysis</h2>
+                    <p>Individual request reason breakdown and outcomes</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Request Reason</th>
+                            <th>In Review</th>
+                            <th>Transferred</th>
+                            <th>Stayed</th>
+                            <th>Discharged</th>
+                            <th>Total Requests</th>
+                            <th>Retention Rate</th>
+                            <th>Priority Level</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transferTable">
+                        <!-- Data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="insightsSection" class="analysis-table">
+                <div class="table-header" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);">
+                    <h2>💡 Pharmacy Network Insights</h2>
+                    <p>Data-driven insights to improve pharmacy network retention</p>
+                </div>
+                <div style="padding: 30px;">
+                    <div id="insightsContent">
+                        <!-- Insights will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div id="recommendationsSection" class="analysis-table">
+                <div class="table-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                    <h2>🎯 Strategic Recommendations</h2>
+                    <p>Actionable steps to reduce pharmacy transfers and improve patient satisfaction</p>
+                </div>
+                <div style="padding: 30px;">
+                    <div id="recommendationsContent">
+                        <!-- Recommendations will be populated here -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="update-info">
+                <h3>🔄 Auto-Update System</h3>
+                <p><strong>How it works:</strong> This dashboard automatically pulls the latest pharmacy transfer data from your Google Sheets every time the page loads. Data covers rows 1-10 and columns A-F as specified.</p>
+                <p><strong>Key Metrics:</strong> Retention Rate = (Stayed / Total Requests) • Transfer Rate = (Transferred / Total Requests) • Focus on cost and service issues for maximum impact</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Google Sheets CSV URL for pharmacy transfer data
+        const TRANSFER_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR9oDIgQ5APmcCORpmydY4Kxuwd2RPyLEG41QggNecWvPM_xbHBEcp14Pwj9lxkn9OxryuMq5SUFbsd/pub?gid=42669759&single=true&output=csv';
+        
+        let charts = {};
+        let transferData = [];
+
+        // Fetch transfer data from Google Sheets
+        async function fetchTransferData() {
+            try {
+                console.log('Fetching pharmacy transfer data from Google Sheets...');
+                
+                // Try direct fetch first
+                try {
+                    const directResponse = await fetch(TRANSFER_CSV_URL);
+                    if (directResponse.ok) {
+                        const csvText = await directResponse.text();
+                        console.log('Direct CSV fetch successful, length:', csvText.length);
+                        return parseTransferCSV(csvText);
+                    }
+                } catch (directError) {
+                    console.log('Direct fetch failed, trying CORS proxy...');
+                }
+                
+                // Use CORS proxy as fallback
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(TRANSFER_CSV_URL)}`;
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                const csvText = data.contents;
+                
+                console.log('Proxy CSV fetch successful, length:', csvText.length);
+                return parseTransferCSV(csvText);
+                
+            } catch (error) {
+                console.error('Error fetching transfer data:', error);
+                
+                // Show error to user
+                document.getElementById('dataSource').innerHTML = `
+                    ⚠️ <strong>Data Connection Failed</strong><br>
+                    Error: ${error.message}<br>
+                    Using demo data for testing.
+                `;
+                document.getElementById('dataSource').style.background = 'rgba(239, 68, 68, 0.1)';
+                document.getElementById('dataSource').style.borderColor = '#ef4444';
+                document.getElementById('dataSource').style.color = '#fca5a5';
+                
+                // Return demo data
+                return [
+                    { reason: 'Too expensive - Medication', inReview: 0, transferred: 1, stayed: 2, discharged: 0, total: 3 },
+                    { reason: 'Too expensive - Delivery', inReview: 0, transferred: 1, stayed: 1, discharged: 1, total: 3 },
+                    { reason: 'Too Far/Wants to pick up', inReview: 2, transferred: 9, stayed: 10, discharged: 2, total: 23 },
+                    { reason: 'Delay in delivery', inReview: 0, transferred: 0, stayed: 1, discharged: 0, total: 1 },
+                    { reason: 'Stock Issue', inReview: 0, transferred: 1, stayed: 1, discharged: 0, total: 2 },
+                    { reason: 'Pharmacy Requested', inReview: 0, transferred: 0, stayed: 1, discharged: 0, total: 1 },
+                    { reason: 'Practitioner Requested', inReview: 0, transferred: 2, stayed: 4, discharged: 0, total: 6 }
+                ];
+            }
+        }
+
+        // Parse CSV data for transfer information
+        function parseTransferCSV(csvText) {
+            console.log('Parsing pharmacy transfer CSV data...');
+            const lines = csvText.trim().split('\n');
+            console.log('Total lines found:', lines.length);
+            
+            const transfers = [];
+            
+            // Process rows 3-9 for data (array indices 2-8, excluding header and total row)
+            for (let i = 2; i < Math.min(9, lines.length); i++) {
+                const line = lines[i];
+                if (!line || line.trim() === '') continue;
+                
+                // Handle CSV parsing with quoted fields
+                const columns = parseCSVLine(line);
+                
+                // Extract columns A-F (indices 0-5)
+                const reason = columns[0] ? columns[0].trim() : '';
+                const inReview = parseInt(columns[1]) || 0;
+                const transferred = parseInt(columns[2]) || 0;
+                const stayed = parseInt(columns[3]) || 0;
+                const discharged = parseInt(columns[4]) || 0;
+                const total = parseInt(columns[5]) || 0;
+                
+                // Only include valid transfer reasons
+                if (reason && reason !== '' && !reason.toLowerCase().includes('total') && total > 0) {
+                    transfers.push({
+                        reason: reason,
+                        inReview: inReview,
+                        transferred: transferred,
+                        stayed: stayed,
+                        discharged: discharged,
+                        total: total
+                    });
+                    console.log(`Added: ${reason} - Total: ${total} (Transferred: ${transferred}, Stayed: ${stayed})`);
+                }
+            }
+            
+            console.log('Final transfer data:', transfers);
+            return transfers;
+        }
+
+        // Parse a single CSV line handling quoted fields
+        function parseCSVLine(line) {
+            const columns = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    columns.push(current.replace(/"/g, ''));
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            columns.push(current.replace(/"/g, ''));
+            return columns;
+        }
+
+        // Get risk indicator based on transfer rates
+        function getRiskIndicator(rate, type = 'retention') {
+            if (type === 'retention') {
+                if (rate < 40) return '<span class="risk-high">Critical</span>';
+                if (rate < 60) return '<span class="risk-medium">Warning</span>';
+                return '<span class="risk-low">Good</span>';
+            } else { // transfer rate
+                if (rate > 60) return '<span class="risk-high">Critical</span>';
+                if (rate > 40) return '<span class="risk-medium">Warning</span>';
+                return '<span class="risk-low">Good</span>';
+            }
+        }
+
+        // Update dashboard with transfer data
+        function updateDashboard(data) {
+            transferData = data;
+            
+            // Update last updated time
+            document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+            
+            // Calculate key metrics
+            const totalRequests = data.reduce((sum, item) => sum + item.total, 0);
+            const totalStayed = data.reduce((sum, item) => sum + item.stayed, 0);
+            const totalTransferred = data.reduce((sum, item) => sum + item.transferred, 0);
+            
+            const retentionRate = totalRequests > 0 ? (totalStayed / totalRequests) * 100 : 0;
+            const transferRate = totalRequests > 0 ? (totalTransferred / totalRequests) * 100 : 0;
+            
+            // Find top issue
+            const topIssue = data.reduce((max, item) => item.total > max.total ? item : max, data[0]);
+            
+            // Calculate cost and service issues
+            const costIssues = data.filter(item => 
+                item.reason.toLowerCase().includes('expensive') || 
+                item.reason.toLowerCase().includes('cost')
+            ).reduce((sum, item) => sum + item.total, 0);
+            
+            const serviceIssues = data.filter(item => 
+                item.reason.toLowerCase().includes('far') || 
+                item.reason.toLowerCase().includes('delivery') || 
+                item.reason.toLowerCase().includes('stock') ||
+                item.reason.toLowerCase().includes('pick up')
+            ).reduce((sum, item) => sum + item.total, 0);
+            
+            // Update metric cards
+            document.getElementById('totalRequests').textContent = totalRequests.toLocaleString();
+            document.getElementById('retentionRate').textContent = `${retentionRate.toFixed(1)}%`;
+            document.getElementById('transferRate').textContent = `${transferRate.toFixed(1)}%`;
+            document.getElementById('topIssue').textContent = topIssue.reason;
+            document.getElementById('topIssueCount').textContent = `${topIssue.total} requests (${((topIssue.total / totalRequests) * 100).toFixed(1)}%)`;
+            document.getElementById('costIssues').textContent = costIssues;
+            document.getElementById('serviceIssues').textContent = serviceIssues;
+            
+            // Update risk indicators
+            document.getElementById('retentionRiskIndicator').innerHTML = getRiskIndicator(retentionRate, 'retention');
+            document.getElementById('transferRiskIndicator').innerHTML = getRiskIndicator(transferRate, 'transfer');
+            document.getElementById('costRiskIndicator').innerHTML = costIssues > totalRequests * 0.2 ? '<span class="risk-high">High Impact</span>' : '<span class="risk-medium">Monitor</span>';
+            document.getElementById('serviceRiskIndicator').innerHTML = serviceIssues > totalRequests * 0.4 ? '<span class="risk-high">Critical</span>' : '<span class="risk-medium">Monitor</span>';
+            
+            // Update quick summary
+            updateQuickSummary(data, totalRequests, retentionRate, transferRate);
+            
+            // Update table
+            updateTransferTable(data);
+            
+            // Generate and update insights
+            const insights = generateInsights(data);
+            updateInsightsSection(insights);
+            
+            // Generate and update recommendations
+            const recommendations = generateRecommendations(data);
+            updateRecommendationsSection(recommendations);
+            
+            // Update charts
+            createTransferCharts(data);
+        }
+
+        // Update quick summary section
+        function updateQuickSummary(data, totalRequests, retentionRate, transferRate) {
+            const topIssue = data.reduce((max, item) => item.total > max.total ? item : max, data[0]);
+            const worstRetention = data.reduce((min, item) => {
+                const itemRetention = item.total > 0 ? (item.stayed / item.total) * 100 : 100;
+                const minRetention = min.total > 0 ? (min.stayed / min.total) * 100 : 100;
+                return itemRetention < minRetention ? item : min;
+            }, data[0]);
+            
+            const content = document.getElementById('quickSummaryContent');
+            content.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+                    <div style="text-align: center; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid #3b82f6;">
+                        <h4 style="color: #3b82f6; margin-bottom: 8px;">Overall Performance</h4>
+                        <p style="color: #cbd5e1;">Retention rate: <strong>${retentionRate.toFixed(1)}%</strong></p>
+                        <p style="color: #cbd5e1;">Total requests: <strong>${totalRequests.toLocaleString()}</strong></p>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border: 1px solid #ef4444;">
+                        <h4 style="color: #ef4444; margin-bottom: 8px;">Top Problem</h4>
+                        <p style="color: #cbd5e1;"><strong>${topIssue.reason}</strong></p>
+                        <p style="color: #cbd5e1;">${topIssue.total} requests (${((topIssue.total / totalRequests) * 100).toFixed(1)}%)</p>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: rgba(245, 158, 11, 0.1); border-radius: 10px; border: 1px solid #f59e0b;">
+                        <h4 style="color: #f59e0b; margin-bottom: 8px;">Needs Attention</h4>
+                        <p style="color: #cbd5e1;"><strong>${worstRetention.reason}</strong></p>
+                        <p style="color: #cbd5e1;">${((worstRetention.stayed / worstRetention.total) * 100).toFixed(1)}% retention rate</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Update transfer table
+        function updateTransferTable(data) {
+            const tbody = document.getElementById('transferTable');
+            tbody.innerHTML = '';
+            
+            // Sort by total requests descending
+            const sortedData = [...data].sort((a, b) => b.total - a.total);
+            
+            sortedData.forEach(item => {
+                const retentionRate = item.total > 0 ? (item.stayed / item.total) * 100 : 0;
+                const transferRate = item.total > 0 ? (item.transferred / item.total) * 100 : 0;
+                
+                let priorityClass = 'risk-low';
+                let priorityText = 'Monitor';
+                
+                if (item.total > 5 && retentionRate < 50) {
+                    priorityClass = 'risk-high';
+                    priorityText = 'Critical';
+                } else if (item.total > 3 && retentionRate < 70) {
+                    priorityClass = 'risk-medium';
+                    priorityText = 'Review';
+                }
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${item.reason}</strong></td>
+                    <td>${item.inReview}</td>
+                    <td><strong>${item.transferred}</strong></td>
+                    <td><strong style="color: #10b981;">${item.stayed}</strong></td>
+                    <td>${item.discharged}</td>
+                    <td><strong>${item.total}</strong></td>
+                    <td><strong>${retentionRate.toFixed(1)}%</strong></td>
+                    <td><span class="risk-indicator ${priorityClass}">${priorityText}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        // Generate insights for pharmacy transfers
+        function generateInsights(data) {
+            const insights = [];
+            
+            // Calculate key metrics
+            const totalRequests = data.reduce((sum, item) => sum + item.total, 0);
+            const totalStayed = data.reduce((sum, item) => sum + item.stayed, 0);
+            const totalTransferred = data.reduce((sum, item) => sum + item.transferred, 0);
+            
+            const retentionRate = (totalStayed / totalRequests) * 100;
+            
+            // Cost vs Service Issues Analysis
+            const costIssues = data.filter(item => 
+                item.reason.toLowerCase().includes('expensive')
+            );
+            const serviceIssues = data.filter(item => 
+                item.reason.toLowerCase().includes('far') || 
+                item.reason.toLowerCase().includes('delivery') || 
+                item.reason.toLowerCase().includes('stock')
+            );
+            
+            const costTotal = costIssues.reduce((sum, item) => sum + item.total, 0);
+            const serviceTotal = serviceIssues.reduce((sum, item) => sum + item.total, 0);
+            
+            insights.push({
+                title: "💰 Cost vs Service Issues Analysis",
+                content: `
+                    <p><strong>Cost-Related Issues:</strong> <span class="highlight-stat">${costTotal} requests (${((costTotal / totalRequests) * 100).toFixed(1)}%)</span></p>
+                    <p><strong>Service-Related Issues:</strong> <span class="highlight-stat">${serviceTotal} requests (${((serviceTotal / totalRequests) * 100).toFixed(1)}%)</span></p>
+                    <p><strong>Key Insight:</strong> ${serviceTotal > costTotal ? 
+                        '<span class="critical-issue">Service issues dominate</span> - focus on delivery, location, and stock management' : 
+                        '<span class="critical-issue">Cost concerns are primary</span> - review pricing strategy and patient affordability options'}</p>
+                    <p><strong>Business Impact:</strong> Each retained patient could generate ${Math.round(200 * 6).toLocaleString()} in annual medication value</p>
+                `
+            });
+            
+            // Geographic/Accessibility Analysis
+            const locationIssue = data.find(item => item.reason.toLowerCase().includes('far') || item.reason.toLowerCase().includes('pick up'));
+            if (locationIssue) {
+                const locationRetention = (locationIssue.stayed / locationIssue.total) * 100;
+                insights.push({
+                    title: "📍 Geographic & Accessibility Impact",
+                    content: `
+                        <p><strong>Distance/Pickup Requests:</strong> <span class="highlight-stat">${locationIssue.total} cases</span> with <span class="highlight-stat">${locationRetention.toFixed(1)}% retention</span></p>
+                        <p><strong>Transfer vs Retention:</strong> ${locationIssue.transferred} patients transferred, ${locationIssue.stayed} convinced to stay</p>
+                        <p><strong>Opportunity:</strong> <span class="critical-issue">${((locationIssue.total / totalRequests) * 100).toFixed(1)}% of all requests</span> are location-related</p>
+                        <p><strong>Solutions needed:</strong> Pharmacy network expansion, delivery improvements, or pickup location partnerships</p>
+                    `
+                });
+            }
+            
+            // Retention Success Analysis
+            const bestRetention = data.filter(item => item.total > 2).reduce((best, item) => {
+                const itemRetention = (item.stayed / item.total) * 100;
+                const bestRetention = (best.stayed / best.total) * 100;
+                return itemRetention > bestRetention ? item : best;
+            }, data[0]);
+            
+            if (bestRetention) {
+                const successRate = (bestRetention.stayed / bestRetention.total) * 100;
+                insights.push({
+                    title: "🌟 Retention Success Stories",
+                    content: `
+                        <p><strong>Best Retention Category:</strong> <span class="highlight-stat">${bestRetention.reason}</span></p>
+                        <p><strong>Success Rate:</strong> <span class="highlight-stat">${successRate.toFixed(1)}%</span> of patients stayed (${bestRetention.stayed}/${bestRetention.total})</p>
+                        <p><strong>What's Working:</strong> This category shows patients can be convinced to stay when properly addressed</p>
+                        <p><strong>Scalable Approach:</strong> Apply successful retention strategies from this category to other problem areas</p>
+                    `
+                });
+            }
+            
+            return insights;
+        }
+
+        // Generate recommendations for pharmacy network improvements
+        function generateRecommendations(data) {
+            const recommendations = [];
+            
+            const totalRequests = data.reduce((sum, item) => sum + item.total, 0);
+            const retentionRate = (data.reduce((sum, item) => sum + item.stayed, 0) / totalRequests) * 100;
+            
+            // Immediate Actions for Top Issues
+            const topIssues = [...data].sort((a, b) => b.total - a.total).slice(0, 3);
+            recommendations.push({
+                title: "🚨 Immediate Action Plan - Top Transfer Drivers",
+                content: `
+                    <p><strong>Priority Issues to Address:</strong></p>
+                    ${topIssues.map(item => {
+                        const retRate = (item.stayed / item.total) * 100;
+                        return `<p>• <strong>${item.reason}:</strong> ${item.total} requests (${retRate.toFixed(1)}% retention)</p>`;
+                    }).join('')}
+                    <p><strong>Immediate Actions:</strong></p>
+                    <p>• Establish dedicated team to address top 3 issues</p>
+                    <p>• Implement emergency retention protocols for high-volume problems</p>
+                    <p>• Weekly review meetings until transfer rates decrease</p>
+                `
+            });
+            
+            // Cost-Specific Recommendations
+            const costIssues = data.filter(item => item.reason.toLowerCase().includes('expensive'));
+            if (costIssues.length > 0) {
+                const costTotal = costIssues.reduce((sum, item) => sum + item.total, 0);
+                recommendations.push({
+                    title: "💰 Cost Management Strategy",
+                    content: `
+                        <p><strong>Cost-Related Transfer Requests:</strong> <span class="highlight-stat">${costTotal} cases</span></p>
+                        <p><strong>Financial Solutions:</strong></p>
+                        <p>• Negotiate better pricing tiers with network pharmacies</p>
+                        <p>• Develop patient financial assistance programs</p>
+                        <p>• Create bulk ordering discounts for regular patients</p>
+                        <p>• Offer payment plans for expensive medications</p>
+                        <p><strong>Value Communication:</strong></p>
+                        <p>• Highlight value-added services that justify network pricing</p>
+                        <p>• Educate patients on total cost of care, not just product price</p>
+                        <p>• Develop cost comparison tools showing true value proposition</p>
+                    `
+                });
+            }
+            
+            // Service Improvement Recommendations
+            const serviceIssues = data.filter(item => 
+                item.reason.toLowerCase().includes('delivery') || 
+                item.reason.toLowerCase().includes('stock') ||
+                item.reason.toLowerCase().includes('far')
+            );
+            if (serviceIssues.length > 0) {
+                const serviceTotal = serviceIssues.reduce((sum, item) => sum + item.total, 0);
+                recommendations.push({
+                    title: "🚚 Service Excellence Initiative",
+                    content: `
+                        <p><strong>Service-Related Issues:</strong> <span class="highlight-stat">${serviceTotal} cases</span> requiring operational improvements</p>
+                        <p><strong>Delivery Optimization:</strong></p>
+                        <p>• Implement same-day/next-day delivery options</p>
+                        <p>• Partner with additional delivery services</p>
+                        <p>• Create delivery tracking and communication systems</p>
+                        <p><strong>Stock Management:</strong></p>
+                        <p>• Implement real-time inventory sharing across network</p>
+                        <p>• Develop emergency stock transfer protocols</p>
+                        <p>• Create patient notification system for stock availability</p>
+                        <p><strong>Network Expansion:</strong></p>
+                        <p>• Add pickup locations or partner pharmacies in underserved areas</p>
+                        <p>• Consider pharmacy partnerships closer to high-demand regions</p>
+                    `
+                });
+            }
+            
+            // Financial Impact & Targets
+            const currentTransferRate = (data.reduce((sum, item) => sum + item.transferred, 0) / totalRequests) * 100;
+            const potentialRevenueLoss = Math.round(totalRequests * (currentTransferRate / 100) * 200 * 6);
+            
+            recommendations.push({
+                title: "📊 Performance Targets & Financial Impact",
+                content: `
+                    <p><strong>Current Performance:</strong></p>
+                    <p>• Retention rate: <span class="highlight-stat">${retentionRate.toFixed(1)}%</span></p>
+                    <p>• Transfer rate: <span class="highlight-stat">${currentTransferRate.toFixed(1)}%</span></p>
+                    <p>• Annual revenue at risk: <span class="critical-issue">$${potentialRevenueLoss.toLocaleString()}</span></p>
+                    
+                    <p><strong>Target Improvements (90-day goals):</strong></p>
+                    <p>• Increase retention rate to <strong>75%</strong> (industry benchmark)</p>
+                    <p>• Reduce cost-related transfers by <strong>50%</strong></p>
+                    <p>• Eliminate stock-related transfers through better inventory management</p>
+                    
+                    <p><strong>Success Metrics:</strong></p>
+                    <p>• Weekly transfer request monitoring</p>
+                    <p>• Patient satisfaction scores by transfer reason</p>
+                    <p>• Network pharmacy performance scorecards</p>
+                    <p>• Cost per retained patient vs. acquisition cost analysis</p>
+                `
+            });
+            
+            // System-Level Improvements
+            recommendations.push({
+                title: "🔧 System-Level Retention Program",
+                content: `
+                    <p><strong>Proactive Retention System:</strong></p>
+                    <p>• Implement early warning system for at-risk patients</p>
+                    <p>• Create automated satisfaction surveys after pharmacy interactions</p>
+                    <p>• Develop patient advocacy team for transfer request resolution</p>
+                    
+                    <p><strong>Network Pharmacy Standards:</strong></p>
+                    <p>• Establish service level agreements with network pharmacies</p>
+                    <p>• Implement monthly pharmacy performance reviews</p>
+                    <p>• Create patient feedback loops for continuous improvement</p>
+                    
+                    <p><strong>Technology Solutions:</strong></p>
+                    <p>• Patient portal showing network pharmacy options and services</p>
+                    <p>• Real-time pharmacy availability and pricing comparison</p>
+                    <p>• Automated delivery status updates and problem resolution</p>
+                    
+                    <p><strong>Training & Development:</strong></p>
+                    <p>• Staff training on retention conversation techniques</p>
+                    <p>• Network pharmacy customer service standards</p>
+                    <p>• Regular best practice sharing sessions across the network</p>
+                `
+            });
+            
+            return recommendations;
+        }
+
+        // Update sections
+        function updateInsightsSection(insights) {
+            const content = document.getElementById('insightsContent');
+            content.innerHTML = `
+                <div class="insight-grid">
+                    ${insights.map(insight => `
+                        <div class="insight-card">
+                            <h4>${insight.title}</h4>
+                            ${insight.content}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function updateRecommendationsSection(recommendations) {
+            const content = document.getElementById('recommendationsContent');
+            content.innerHTML = `
+                <div class="insight-grid">
+                    ${recommendations.map(rec => `
+                        <div class="insight-card">
+                            <h4>${rec.title}</h4>
+                            ${rec.content}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // Create transfer charts
+        function createTransferCharts(data) {
+            if (typeof Chart === 'undefined') {
+                setTimeout(() => createTransferCharts(data), 500);
+                return;
+            }
+
+            if (charts.reasons) charts.reasons.destroy();
+            if (charts.outcomes) charts.outcomes.destroy();
+
+            try {
+                // Reasons chart
+                const ctx1 = document.getElementById('reasonsChart');
+                charts.reasons = new Chart(ctx1.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.map(item => item.reason.substring(0, 20) + (item.reason.length > 20 ? '...' : '')),
+                        datasets: [{
+                            label: 'Transfer Requests',
+                            data: data.map(item => item.total),
+                            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#e2e8f0' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#cbd5e1' },
+                                grid: { color: '#475569' }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: '#cbd5e1' },
+                                grid: { color: '#475569' }
+                            }
+                        }
+                    }
+                });
+
+                // Outcomes chart
+                const totalStayed = data.reduce((sum, item) => sum + item.stayed, 0);
+                const totalTransferred = data.reduce((sum, item) => sum + item.transferred, 0);
+                const totalInReview = data.reduce((sum, item) => sum + item.inReview, 0);
+                const totalDischarged = data.reduce((sum, item) => sum + item.discharged, 0);
+
+                const ctx2 = document.getElementById('outcomesChart');
+                charts.outcomes = new Chart(ctx2.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Stayed', 'Transferred', 'In Review', 'Discharged'],
+                        datasets: [{
+                            data: [totalStayed, totalTransferred, totalInReview, totalDischarged],
+                            backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6b7280'],
+                            borderWidth: 3,
+                            borderColor: '#1e293b'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: '#e2e8f0',
+                                    padding: 20
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error creating charts:', error);
+            }
+        }
+
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                console.log('Initializing pharmacy transfer dashboard...');
+                const data = await fetchTransferData();
+                updateDashboard(data);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                
+                console.log('Dashboard loaded successfully!');
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                
+                const fallbackData = [
+                    { reason: 'Too expensive - Medication', inReview: 0, transferred: 1, stayed: 2, discharged: 0, total: 3 },
+                    { reason: 'Too Far/Wants to pick up', inReview: 2, transferred: 9, stayed: 10, discharged: 2, total: 23 },
+                    { reason: 'Stock Issue', inReview: 0, transferred: 1, stayed: 1, discharged: 0, total: 2 }
+                ];
+                
+                updateDashboard(fallbackData);
+                document.getElementById('dataSource').innerHTML = '⚠️ Using demo data - Google Sheets connection failed';
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+            }
+        }
+
+        // Start the dashboard when page loads
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>
