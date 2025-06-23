@@ -387,10 +387,10 @@
                 </div>
                 
                 <div class="metric-card">
-                    <div class="metric-title">Transfer Rate</div>
-                    <div class="metric-value" id="transferRate">0%</div>
-                    <div class="metric-subtitle">Patients transferred out</div>
-                    <div class="risk-indicator" id="transferRiskIndicator"></div>
+                    <div class="metric-title">Patient Loss Rate</div>
+                    <div class="metric-value" id="lossRate">0%</div>
+                    <div class="metric-subtitle">Patients lost (transferred + discharged)</div>
+                    <div class="risk-indicator" id="lossRiskIndicator"></div>
                 </div>
                 
                 <div class="metric-card">
@@ -616,16 +616,20 @@
             return columns;
         }
 
-        // Get risk indicator based on transfer rates
+        // Get risk indicator based on rates
         function getRiskIndicator(rate, type = 'retention') {
             if (type === 'retention') {
                 if (rate < 40) return '<span class="risk-high">Critical</span>';
                 if (rate < 60) return '<span class="risk-medium">Warning</span>';
                 return '<span class="risk-low">Good</span>';
-            } else { // transfer rate
+            } else if (type === 'loss') {
                 if (rate > 60) return '<span class="risk-high">Critical</span>';
                 if (rate > 40) return '<span class="risk-medium">Warning</span>';
                 return '<span class="risk-low">Good</span>';
+            } else { // cost or service issues
+                if (rate > 20) return '<span class="risk-high">High Impact</span>';
+                if (rate > 10) return '<span class="risk-medium">Monitor</span>';
+                return '<span class="risk-low">Low Impact</span>';
             }
         }
 
@@ -640,9 +644,11 @@
             const totalRequests = data.reduce((sum, item) => sum + item.total, 0);
             const totalStayed = data.reduce((sum, item) => sum + item.stayed, 0);
             const totalTransferred = data.reduce((sum, item) => sum + item.transferred, 0);
+            const totalDischarged = data.reduce((sum, item) => sum + item.discharged, 0);
+            const totalLost = totalTransferred + totalDischarged;
             
             const retentionRate = totalRequests > 0 ? (totalStayed / totalRequests) * 100 : 0;
-            const transferRate = totalRequests > 0 ? (totalTransferred / totalRequests) * 100 : 0;
+            const lossRate = totalRequests > 0 ? (totalLost / totalRequests) * 100 : 0;
             
             // Find top issue
             const topIssue = data.reduce((max, item) => item.total > max.total ? item : max, data[0]);
@@ -663,7 +669,7 @@
             // Update metric cards
             document.getElementById('totalRequests').textContent = totalRequests.toLocaleString();
             document.getElementById('retentionRate').textContent = `${retentionRate.toFixed(1)}%`;
-            document.getElementById('transferRate').textContent = `${transferRate.toFixed(1)}%`;
+            document.getElementById('lossRate').textContent = `${lossRate.toFixed(1)}%`;
             document.getElementById('topIssue').textContent = topIssue.reason;
             document.getElementById('topIssueCount').textContent = `${topIssue.total} requests (${((topIssue.total / totalRequests) * 100).toFixed(1)}%)`;
             document.getElementById('costIssues').textContent = costIssues;
@@ -671,12 +677,12 @@
             
             // Update risk indicators
             document.getElementById('retentionRiskIndicator').innerHTML = getRiskIndicator(retentionRate, 'retention');
-            document.getElementById('transferRiskIndicator').innerHTML = getRiskIndicator(transferRate, 'transfer');
-            document.getElementById('costRiskIndicator').innerHTML = costIssues > totalRequests * 0.2 ? '<span class="risk-high">High Impact</span>' : '<span class="risk-medium">Monitor</span>';
-            document.getElementById('serviceRiskIndicator').innerHTML = serviceIssues > totalRequests * 0.4 ? '<span class="risk-high">Critical</span>' : '<span class="risk-medium">Monitor</span>';
+            document.getElementById('lossRiskIndicator').innerHTML = getRiskIndicator(lossRate, 'loss');
+            document.getElementById('costRiskIndicator').innerHTML = getRiskIndicator((costIssues / totalRequests) * 100, 'issues');
+            document.getElementById('serviceRiskIndicator').innerHTML = getRiskIndicator((serviceIssues / totalRequests) * 100, 'issues');
             
             // Update quick summary
-            updateQuickSummary(data, totalRequests, retentionRate, transferRate);
+            updateQuickSummary(data, totalRequests, retentionRate, lossRate);
             
             // Update table
             updateTransferTable(data);
@@ -694,7 +700,7 @@
         }
 
         // Update quick summary section
-        function updateQuickSummary(data, totalRequests, retentionRate, transferRate) {
+        function updateQuickSummary(data, totalRequests, retentionRate, lossRate) {
             const topIssue = data.reduce((max, item) => item.total > max.total ? item : max, data[0]);
             const worstRetention = data.reduce((min, item) => {
                 const itemRetention = item.total > 0 ? (item.stayed / item.total) * 100 : 100;
@@ -708,6 +714,7 @@
                     <div style="text-align: center; padding: 15px; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid #3b82f6;">
                         <h4 style="color: #3b82f6; margin-bottom: 8px;">Overall Performance</h4>
                         <p style="color: #cbd5e1;">Retention rate: <strong>${retentionRate.toFixed(1)}%</strong></p>
+                        <p style="color: #cbd5e1;">Patient loss rate: <strong>${lossRate.toFixed(1)}%</strong></p>
                         <p style="color: #cbd5e1;">Total requests: <strong>${totalRequests.toLocaleString()}</strong></p>
                     </div>
                     <div style="text-align: center; padding: 15px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; border: 1px solid #ef4444;">
@@ -831,8 +838,11 @@
             const totalRequests = data.reduce((sum, item) => sum + item.total, 0);
             const totalStayed = data.reduce((sum, item) => sum + item.stayed, 0);
             const totalTransferred = data.reduce((sum, item) => sum + item.transferred, 0);
+            const totalDischarged = data.reduce((sum, item) => sum + item.discharged, 0);
+            const totalLost = totalTransferred + totalDischarged;
             
             const retentionRate = (totalStayed / totalRequests) * 100;
+            const lossRate = (totalLost / totalRequests) * 100;
             
             // Cost vs Service Issues Analysis
             const costIssues = data.filter(item => 
@@ -856,6 +866,7 @@
                         '<span class="critical-issue">Service issues dominate</span> - focus on delivery, location, and stock management' : 
                         '<span class="critical-issue">Cost concerns are primary</span> - review pricing strategy and patient affordability options'}</p>
                     <p><strong>Business Impact:</strong> Each retained patient could generate ${Math.round(200 * 6).toLocaleString()} in annual medication value</p>
+                    <p><strong>Patient Loss:</strong> Currently losing <span class="critical-issue">${lossRate.toFixed(1)}%</span> of patients (${totalLost} patients transferred or discharged)</p>
                 `
             });
             
@@ -863,12 +874,13 @@
             const locationIssue = data.find(item => item.reason.toLowerCase().includes('far') || item.reason.toLowerCase().includes('pick up'));
             if (locationIssue) {
                 const locationRetention = (locationIssue.stayed / locationIssue.total) * 100;
+                const locationLoss = locationIssue.transferred + locationIssue.discharged;
                 insights.push({
                     title: "📍 Geographic & Accessibility Impact",
                     content: `
                         <p><strong>Distance/Pickup Requests:</strong> <span class="highlight-stat">${locationIssue.total} cases</span> with <span class="highlight-stat">${locationRetention.toFixed(1)}% retention</span></p>
-                        <p><strong>Transfer vs Retention:</strong> ${locationIssue.transferred} patients transferred, ${locationIssue.stayed} convinced to stay</p>
-                        <p><strong>Opportunity:</strong> <span class="critical-issue">${((locationIssue.total / totalRequests) * 100).toFixed(1)}% of all requests</span> are location-related</p>
+                        <p><strong>Patient Loss:</strong> <span class="critical-issue">${locationLoss} patients lost</span> (${locationIssue.transferred} transferred, ${locationIssue.discharged} discharged)</p>
+                        <p><strong>Revenue Impact:</strong> <span class="critical-issue">${((locationIssue.total / totalRequests) * 100).toFixed(1)}% of all requests</span> are location-related</p>
                         <p><strong>Solutions needed:</strong> Pharmacy network expansion, delivery improvements, or pickup location partnerships</p>
                     `
                 });
@@ -877,17 +889,19 @@
             // Retention Success Analysis
             const bestRetention = data.filter(item => item.total > 2).reduce((best, item) => {
                 const itemRetention = (item.stayed / item.total) * 100;
-                const bestRetention = (best.stayed / best.total) * 100;
-                return itemRetention > bestRetention ? item : best;
+                const bestRetentionRate = (best.stayed / best.total) * 100;
+                return itemRetention > bestRetentionRate ? item : best;
             }, data[0]);
             
             if (bestRetention) {
                 const successRate = (bestRetention.stayed / bestRetention.total) * 100;
+                const lostInCategory = bestRetention.transferred + bestRetention.discharged;
                 insights.push({
                     title: "🌟 Retention Success Stories",
                     content: `
                         <p><strong>Best Retention Category:</strong> <span class="highlight-stat">${bestRetention.reason}</span></p>
                         <p><strong>Success Rate:</strong> <span class="highlight-stat">${successRate.toFixed(1)}%</span> of patients stayed (${bestRetention.stayed}/${bestRetention.total})</p>
+                        <p><strong>Patients Saved:</strong> Only <span class="critical-issue">${lostInCategory} patients lost</span> from this category</p>
                         <p><strong>What's Working:</strong> This category shows patients can be convinced to stay when properly addressed</p>
                         <p><strong>Scalable Approach:</strong> Apply successful retention strategies from this category to other problem areas</p>
                     `
@@ -970,20 +984,21 @@
             }
             
             // Financial Impact & Targets
-            const currentTransferRate = (data.reduce((sum, item) => sum + item.transferred, 0) / totalRequests) * 100;
-            const potentialRevenueLoss = Math.round(totalRequests * (currentTransferRate / 100) * 200 * 6);
+            const totalLost = data.reduce((sum, item) => sum + item.transferred + item.discharged, 0);
+            const currentLossRate = (totalLost / totalRequests) * 100;
+            const potentialRevenueLoss = Math.round(totalLost * 200 * 6);
             
             recommendations.push({
                 title: "📊 Performance Targets & Financial Impact",
                 content: `
                     <p><strong>Current Performance:</strong></p>
                     <p>• Retention rate: <span class="highlight-stat">${retentionRate.toFixed(1)}%</span></p>
-                    <p>• Transfer rate: <span class="highlight-stat">${currentTransferRate.toFixed(1)}%</span></p>
-                    <p>• Annual revenue at risk: <span class="critical-issue">$${potentialRevenueLoss.toLocaleString()}</span></p>
+                    <p>• Patient loss rate: <span class="critical-issue">${currentLossRate.toFixed(1)}%</span> (${totalLost} patients lost)</p>
+                    <p>• Annual revenue at risk: <span class="critical-issue">${potentialRevenueLoss.toLocaleString()}</span></p>
                     
                     <p><strong>Target Improvements (90-day goals):</strong></p>
                     <p>• Increase retention rate to <strong>75%</strong> (industry benchmark)</p>
-                    <p>• Reduce cost-related transfers by <strong>50%</strong></p>
+                    <p>• Reduce patient loss rate to <strong>15%</strong> or lower</p>
                     <p>• Eliminate stock-related transfers through better inventory management</p>
                     
                     <p><strong>Success Metrics:</strong></p>
@@ -991,6 +1006,7 @@
                     <p>• Patient satisfaction scores by transfer reason</p>
                     <p>• Network pharmacy performance scorecards</p>
                     <p>• Cost per retained patient vs. acquisition cost analysis</p>
+                    <p><strong>Revenue Recovery:</strong> Each 10% improvement in retention could save ${Math.round(totalRequests * 0.1 * 200 * 6).toLocaleString()} annually</p>
                 `
             });
             
@@ -1109,10 +1125,10 @@
                 charts.outcomes = new Chart(ctx2.getContext('2d'), {
                     type: 'doughnut',
                     data: {
-                        labels: ['Stayed', 'Transferred', 'In Review', 'Discharged'],
+                        labels: ['Stayed (✅)', 'Transferred (❌)', 'Discharged (❌)', 'In Review (⏳)'],
                         datasets: [{
-                            data: [totalStayed, totalTransferred, totalInReview, totalDischarged],
-                            backgroundColor: ['#10b981', '#ef4444', '#f59e0b', '#6b7280'],
+                            data: [totalStayed, totalTransferred, totalDischarged, totalInReview],
+                            backgroundColor: ['#10b981', '#ef4444', '#dc2626', '#f59e0b'],
                             borderWidth: 3,
                             borderColor: '#1e293b'
                         }]
