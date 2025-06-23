@@ -205,6 +205,30 @@
             text-transform: uppercase;
             font-size: 0.8rem;
             letter-spacing: 0.5px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        
+        th:hover {
+            background: #4a5568;
+        }
+        
+        th.sortable::after {
+            content: ' ↕️';
+            font-size: 0.7rem;
+            opacity: 0.5;
+        }
+        
+        th.sort-asc::after {
+            content: ' ↑';
+            opacity: 1;
+        }
+        
+        th.sort-desc::after {
+            content: ' ↓';
+            opacity: 1;
         }
         
         td {
@@ -415,14 +439,14 @@
                 <table>
                     <thead>
                         <tr>
-                            <th>Request Reason</th>
-                            <th>In Review</th>
-                            <th>Transferred</th>
-                            <th>Stayed</th>
-                            <th>Discharged</th>
-                            <th>Total Requests</th>
-                            <th>Retention Rate</th>
-                            <th>Priority Level</th>
+                            <th class="sortable" data-column="reason">Request Reason</th>
+                            <th class="sortable" data-column="inReview">In Review</th>
+                            <th class="sortable" data-column="transferred">Transferred</th>
+                            <th class="sortable" data-column="stayed">Stayed</th>
+                            <th class="sortable" data-column="discharged">Discharged</th>
+                            <th class="sortable" data-column="total">Total Requests</th>
+                            <th class="sortable" data-column="retentionRate">Retention Rate</th>
+                            <th class="sortable" data-column="priorityLevel">Priority Level</th>
                         </tr>
                     </thead>
                     <tbody id="transferTable">
@@ -469,6 +493,8 @@
         
         let charts = {};
         let transferData = [];
+        let currentSortColumn = 'total';
+        let currentSortDirection = 'desc';
 
         // Fetch transfer data from Google Sheets
         async function fetchTransferData() {
@@ -698,17 +724,50 @@
             `;
         }
 
-        // Update transfer table
+        // Update transfer table with sorting functionality
         function updateTransferTable(data) {
+            transferData = data;
             const tbody = document.getElementById('transferTable');
             tbody.innerHTML = '';
             
-            // Sort by total requests descending
-            const sortedData = [...data].sort((a, b) => b.total - a.total);
+            // Add retention rate and priority level to data for sorting
+            const enrichedData = data.map(item => ({
+                ...item,
+                retentionRate: item.total > 0 ? (item.stayed / item.total) * 100 : 0,
+                priorityLevel: getPriorityLevel(item)
+            }));
+            
+            // Sort data
+            const sortedData = [...enrichedData].sort((a, b) => {
+                let aVal = a[currentSortColumn];
+                let bVal = b[currentSortColumn];
+                
+                if (currentSortColumn === 'reason') {
+                    aVal = aVal.toLowerCase();
+                    bVal = bVal.toLowerCase();
+                } else if (currentSortColumn === 'priorityLevel') {
+                    const priorityOrder = { 'Critical': 3, 'Review': 2, 'Monitor': 1 };
+                    aVal = priorityOrder[aVal] || 0;
+                    bVal = priorityOrder[bVal] || 0;
+                }
+                
+                if (currentSortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            // Update table headers
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.classList.remove('sort-asc', 'sort-desc');
+                if (th.dataset.column === currentSortColumn) {
+                    th.classList.add(currentSortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
+                }
+            });
             
             sortedData.forEach(item => {
-                const retentionRate = item.total > 0 ? (item.stayed / item.total) * 100 : 0;
-                const transferRate = item.total > 0 ? (item.transferred / item.total) * 100 : 0;
+                const retentionRate = item.retentionRate;
                 
                 let priorityClass = 'risk-low';
                 let priorityText = 'Monitor';
@@ -734,6 +793,34 @@
                 `;
                 tbody.appendChild(row);
             });
+            
+            // Add click handlers for sorting
+            document.querySelectorAll('th.sortable').forEach(th => {
+                th.onclick = () => sortTable(th.dataset.column);
+            });
+        }
+        
+        // Get priority level for sorting
+        function getPriorityLevel(item) {
+            const retentionRate = item.total > 0 ? (item.stayed / item.total) * 100 : 0;
+            
+            if (item.total > 5 && retentionRate < 50) {
+                return 'Critical';
+            } else if (item.total > 3 && retentionRate < 70) {
+                return 'Review';
+            }
+            return 'Monitor';
+        }
+        
+        // Sort table by column
+        function sortTable(column) {
+            if (currentSortColumn === column) {
+                currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'desc';
+            }
+            updateTransferTable(transferData);
         }
 
         // Generate insights for pharmacy transfers
